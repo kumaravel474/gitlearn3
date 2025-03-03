@@ -44,6 +44,8 @@ def send_to_telegram(deals):
 
 # Main Execution
 deals = get_loot_deals()
+print(response.text)  # Print full page source
+
 if deals:
     send_to_telegram(deals)
 else:
