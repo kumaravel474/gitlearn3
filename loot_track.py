@@ -11,7 +11,7 @@ from datetime import datetime
 # Configuration
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
-CHECK_INTERVAL = 600  # Check every 10 minutes
+CHECK_INTERVAL = 60 # Check every 10 minutes
 PRODUCTS_FILE = "time_based_deals.json"
 MIN_DISCOUNT = 50
 MAX_DISCOUNT = 80
