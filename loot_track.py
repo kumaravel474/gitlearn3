@@ -1,14 +1,15 @@
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.chrome.options import Options
-from bs4 import BeautifulSoup
+from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from telegram import Bot
 
-# ✅ Setup Telegram bot
-TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
-TELEGRAM_CHAT_ID = "-1002282196044"
+# ✅ Configure Telegram bot
+TELEGRAM_BOT_TOKEN = "your_bot_token_here"
+TELEGRAM_CHAT_ID = "your_chat_id_here"
 
 # ✅ Amazon Loot Deals URL (Modify if needed)
 AMAZON_URL = "https://www.amazon.in/deals?filter=percent-off-50-"
@@ -17,6 +18,9 @@ AMAZON_URL = "https://www.amazon.in/deals?filter=percent-off-50-"
 chrome_options = Options()
 chrome_options.add_argument("--headless")  # Run without opening a browser
 chrome_options.add_argument("--disable-blink-features=AutomationControlled")
+chrome_options.add_argument("--window-size=1920,1080")
+chrome_options.add_argument("--no-sandbox")
+chrome_options.add_argument("--disable-dev-shm-usage")
 chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
 
 driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
@@ -26,16 +30,22 @@ def fetch_amazon_deals():
     driver.get(AMAZON_URL)
     time.sleep(5)  # Wait for page to load
 
-    soup = BeautifulSoup(driver.page_source, "html.parser")
-    deals = []
+    # ✅ Scroll down to load more deals
+    body = driver.find_element(By.TAG_NAME, "body")
+    for _ in range(5):  # Scroll multiple times
+        body.send_keys(Keys.PAGE_DOWN)
+        time.sleep(2)
 
-    for item in soup.find_all("div", class_="DealCard-module__dealCard_3opzP"):
+    deals = []
+    deal_elements = driver.find_elements(By.CSS_SELECTOR, "div.a-section.a-spacing-none.gbhq-deal-card")
+
+    for item in deal_elements:
         try:
-            title = item.find("span", class_="a-size-medium").text.strip()
-            price = item.find("span", class_="a-price-whole").text.strip()
-            discount = item.find("span", class_="a-size-base-plus").text.strip()
-            image_url = item.find("img")["src"]
-            link = "https://www.amazon.in" + item.find("a", class_="a-link-normal")["href"]
+            title = item.find_element(By.CSS_SELECTOR, "span.a-text-normal").text.strip()
+            price = item.find_element(By.CSS_SELECTOR, "span.a-price-whole").text.strip()
+            discount = item.find_element(By.CSS_SELECTOR, "span.a-size-mini.s-coupon-highlight-color").text.strip()
+            image_url = item.find_element(By.TAG_NAME, "img").get_attribute("src")
+            link = item.find_element(By.TAG_NAME, "a").get_attribute("href")
 
             if "off" in discount and int(discount.replace("% off", "").strip()) >= 50:
                 deals.append({
