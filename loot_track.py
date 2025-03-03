@@ -11,7 +11,7 @@ TELEGRAM_CHAT_ID = "-1002282196044"
 
 
 # Amazon Deals URL
-AMAZON_DEALS_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb"
+AMAZON_DEALS_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb&discounts="
 
 def scrape_amazon_deals():
     """Scrape Amazon for loot deals (above 50% discount)"""
