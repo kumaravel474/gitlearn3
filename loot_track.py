@@ -1,92 +1,73 @@
 import requests
 import json
+import time
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 from telegram import Bot
 
-# ✅ Configure Telegram bot (Replace with your credentials)
 # ✅ Configure Telegram bot
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
 
-# ✅ Amazon API URL (Unofficial)
-AMAZON_URL = "https://www.amazon.in/deals/ajax?filter=percent-off-50-"
+# ✅ Amazon Deals Page
+AMAZON_DEALS_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb"
 
-# ✅ PriceHistory API URL
-PRICEHISTORY_URL = "https://pricehistory.app/amazon-deal-finder"
-
-# ✅ Fake headers to avoid blocking
+# ✅ Fake headers to bypass detection
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept-Language": "en-US,en;q=0.9"
 }
 
-def fetch_amazon_deals():
-    """Fetch deals from Amazon JSON API (Unofficial)"""
+def scrape_amazon_deals():
+    """Scrape Amazon for loot deals (above 50% discount)"""
     try:
-        response = requests.get(AMAZON_URL, headers=HEADERS)
+        print("🔍 Scraping Amazon Deals Page...")
+        response = requests.get(AMAZON_DEALS_URL, headers=HEADERS)
+        
         if response.status_code != 200:
-            print("Failed to load Amazon page")
-            return []
-
-        data = json.loads(response.text)
-        deals = []
-
-        for item in data.get("deals", []):
-            title = item["title"]
-            price = item["price"]["current_price"]
-            discount = item["discount_percent"]
-            image_url = item["image"]
-            link = f"https://www.amazon.in/dp/{item['asin']}"
-
-            if discount >= 50:
-                deals.append({
-                    "title": title,
-                    "price": f"₹{price}",
-                    "discount": f"{discount}% off",
-                    "image_url": image_url,
-                    "link": link
-                })
-
-        return deals
-
-    except Exception as e:
-        print(f"Amazon API failed: {e}")
-        return []
-
-def fetch_pricehistory_deals():
-    """Fetch deals from PriceHistory API (Alternative Source)"""
-    try:
-        response = requests.get(PRICEHISTORY_URL, headers=HEADERS)
-        if response.status_code != 200:
-            print("Failed to load PriceHistory page")
+            print("⚠️ Failed to fetch Amazon page")
             return []
 
         soup = BeautifulSoup(response.text, "html.parser")
         deals = []
 
-        for item in soup.find_all("div", class_="deal-card"):
+        for item in soup.find_all("div", class_="DealContent-module__truncate_sWbxETx42ZPStTc9jwySW"):
             try:
-                title = item.find("h2").text.strip()
-                price = item.find("span", class_="deal-price").text.strip()
-                discount = item.find("span", class_="deal-discount").text.strip()
-                image_url = item.find("img")["src"]
-                link = item.find("a")["href"]
+                title = item.text.strip()
+                discount_element = item.find_next("span", class_="a-size-base a-color-secondary")
+                
+                if discount_element:
+                    discount_text = discount_element.text.strip()
+                    if "%" in discount_text:
+                        discount = int(discount_text.replace("% off", "").strip())
 
-                if "off" in discount and int(discount.replace("% off", "").strip()) >= 50:
-                    deals.append({
-                        "title": title,
-                        "price": price,
-                        "discount": discount,
-                        "image_url": image_url,
-                        "link": link
-                    })
+                        if discount >= 50:
+                            price_element = item.find_next("span", class_="a-price-whole")
+                            price = price_element.text.strip() if price_element else "Unknown Price"
+
+                            image_element = item.find_previous("img")
+                            image_url = image_element["src"] if image_element else None
+
+                            link_element = item.find_previous("a", href=True)
+                            link = f"https://www.amazon.in{link_element['href']}" if link_element else "#"
+
+                            deals.append({
+                                "title": title,
+                                "price": f"₹{price}",
+                                "discount": f"{discount}% off",
+                                "image_url": image_url,
+                                "link": link
+                            })
             except Exception as e:
-                print(f"Error parsing deal: {e}")
+                print(f"⚠️ Error parsing deal: {e}")
                 continue
 
         return deals
 
     except Exception as e:
-        print(f"PriceHistory API failed: {e}")
+        print(f"❌ Amazon Scraping Failed: {e}")
         return []
 
 def send_to_telegram(deals):
@@ -107,15 +88,10 @@ def send_to_telegram(deals):
         )
 
 if __name__ == "__main__":
-    # Try Amazon API first
-    deals = fetch_amazon_deals()
-
-    # If no deals found, try PriceHistory API
-    if not deals:
-        print("Amazon API failed, trying PriceHistory API...")
-        deals = fetch_pricehistory_deals()
+    deals = scrape_amazon_deals()
 
     if deals:
         send_to_telegram(deals)
+        print("✅ Deals sent to Telegram!")
     else:
-        print("No loot deals found!")
+        print("⚠️ No loot deals found!")
