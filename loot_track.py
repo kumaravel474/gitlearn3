@@ -10,7 +10,7 @@ from telegram import Bot
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
 
-# ✅ Amazon Loot Deals URL (Change country if needed)
+# ✅ Amazon Loot Deals URL (Modify if needed)
 AMAZON_URL = "https://www.amazon.in/deals?filter=percent-off-50-"
 
 # ✅ Setup Selenium WebDriver
