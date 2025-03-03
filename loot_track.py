@@ -1,10 +1,5 @@
-import time
-from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from selenium.webdriver.chrome.options import Options
-from webdriver_manager.chrome import ChromeDriverManager
-from selenium.webdriver.common.by import By
-from selenium.webdriver.common.keys import Keys
+import requests
+from bs4 import BeautifulSoup
 from telegram import Bot
 
 # ✅ Configure Telegram bot
@@ -14,38 +9,29 @@ TELEGRAM_CHAT_ID = "-1002282196044"
 # ✅ Amazon Loot Deals URL (Modify if needed)
 AMAZON_URL = "https://www.amazon.in/deals?filter=percent-off-50-"
 
-# ✅ Setup Selenium WebDriver
-chrome_options = Options()
-chrome_options.add_argument("--headless")  # Run without opening a browser
-chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-chrome_options.add_argument("--window-size=1920,1080")
-chrome_options.add_argument("--no-sandbox")
-chrome_options.add_argument("--disable-dev-shm-usage")
-chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=chrome_options)
+# ✅ Fake headers to avoid blocking
+HEADERS = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+}
 
 def fetch_amazon_deals():
     """Scrape Amazon deals page for loot offers above 50% off."""
-    driver.get(AMAZON_URL)
-    time.sleep(5)  # Wait for page to load
+    response = requests.get(AMAZON_URL, headers=HEADERS)
+    
+    if response.status_code != 200:
+        print("Failed to load Amazon page")
+        return []
 
-    # ✅ Scroll down to load more deals
-    body = driver.find_element(By.TAG_NAME, "body")
-    for _ in range(5):  # Scroll multiple times
-        body.send_keys(Keys.PAGE_DOWN)
-        time.sleep(2)
-
+    soup = BeautifulSoup(response.text, "html.parser")
     deals = []
-    deal_elements = driver.find_elements(By.CSS_SELECTOR, "div.a-section.a-spacing-none.gbhq-deal-card")
 
-    for item in deal_elements:
+    for item in soup.find_all("div", class_="DealCard-module__dealCard_3opzP"):
         try:
-            title = item.find_element(By.CSS_SELECTOR, "span.a-text-normal").text.strip()
-            price = item.find_element(By.CSS_SELECTOR, "span.a-price-whole").text.strip()
-            discount = item.find_element(By.CSS_SELECTOR, "span.a-size-mini.s-coupon-highlight-color").text.strip()
-            image_url = item.find_element(By.TAG_NAME, "img").get_attribute("src")
-            link = item.find_element(By.TAG_NAME, "a").get_attribute("href")
+            title = item.find("span", class_="a-size-medium").text.strip()
+            price = item.find("span", class_="a-price-whole").text.strip()
+            discount = item.find("span", class_="a-size-base-plus").text.strip()
+            image_url = item.find("img")["src"]
+            link = "https://www.amazon.in" + item.find("a", class_="a-link-normal")["href"]
 
             if "off" in discount and int(discount.replace("% off", "").strip()) >= 50:
                 deals.append({
@@ -84,5 +70,3 @@ if __name__ == "__main__":
         send_to_telegram(deals)
     else:
         print("No loot deals found!")
-    
-    driver.quit()  # Close the browser
