@@ -1,77 +1,65 @@
-import requests
-import json
-import time
-from bs4 import BeautifulSoup
 from selenium import webdriver
-from selenium.webdriver.chrome.service import Service
-from webdriver_manager.chrome import ChromeDriverManager
+from selenium.webdriver.firefox.service import Service
+from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.common.by import By
 from telegram import Bot
+import time
 
-# ✅ Configure Telegram bot
+# Telegram Configuration
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
 
-# ✅ Amazon Deals Page
-AMAZON_DEALS_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb"
 
-# ✅ Fake headers to bypass detection
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-    "Accept-Language": "en-US,en;q=0.9"
-}
+# Amazon Deals URL
+AMAZON_DEALS_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb"
 
 def scrape_amazon_deals():
     """Scrape Amazon for loot deals (above 50% discount)"""
     try:
-        print("🔍 Scraping Amazon Deals Page...")
-        response = requests.get(AMAZON_DEALS_URL, headers=HEADERS)
-        
-        if response.status_code != 200:
-            print("⚠️ Failed to fetch Amazon page")
-            return []
+        # Firefox options
+        options = Options()
+        options.add_argument("--headless")  # Run Firefox in headless mode
 
-        soup = BeautifulSoup(response.text, "html.parser")
+        # Start WebDriver with Geckodriver
+        driver = webdriver.Firefox(service=Service("/data/data/com.termux/files/usr/bin/geckodriver"), options=options)
+        driver.get(AMAZON_DEALS_URL)
+        time.sleep(5)
+
         deals = []
+        deal_elements = driver.find_elements(By.XPATH, "//div[contains(@class, 'DealCard-module__card')]")
 
-        for item in soup.find_all("div", class_="DealContent-module__truncate_sWbxETx42ZPStTc9jwySW"):
+        for deal in deal_elements:
             try:
-                title = item.text.strip()
-                discount_element = item.find_next("span", class_="a-size-base a-color-secondary")
-                
-                if discount_element:
-                    discount_text = discount_element.text.strip()
-                    if "%" in discount_text:
-                        discount = int(discount_text.replace("% off", "").strip())
+                title = deal.find_element(By.XPATH, ".//span[contains(@class, 'DealContent-module__truncate')]").text.strip()
+                discount_text = deal.find_element(By.XPATH, ".//span[contains(@class, 'BadgeAutomatedLabel-module__badge')]").text.strip()
 
-                        if discount >= 50:
-                            price_element = item.find_next("span", class_="a-price-whole")
-                            price = price_element.text.strip() if price_element else "Unknown Price"
+                if "%" in discount_text:
+                    discount = int(discount_text.replace("%", "").strip())
+                    if discount >= 50:
+                        price = deal.find_element(By.XPATH, ".//span[contains(@class, 'PriceString-module__price')]").text.strip()
+                        image_url = deal.find_element(By.XPATH, ".//img[contains(@class, 'Image-module__image')]").get_attribute("src")
+                        link = deal.find_element(By.XPATH, ".//a[contains(@class, 'DealLink-module__link')]").get_attribute("href")
 
-                            image_element = item.find_previous("img")
-                            image_url = image_element["src"] if image_element else None
-
-                            link_element = item.find_previous("a", href=True)
-                            link = f"https://www.amazon.in{link_element['href']}" if link_element else "#"
-
-                            deals.append({
-                                "title": title,
-                                "price": f"₹{price}",
-                                "discount": f"{discount}% off",
-                                "image_url": image_url,
-                                "link": link
-                            })
+                        deals.append({
+                            "title": title,
+                            "price": price,
+                            "discount": f"{discount}% off",
+                            "image_url": image_url,
+                            "link": link
+                        })
             except Exception as e:
-                print(f"⚠️ Error parsing deal: {e}")
+                print(f"Error parsing deal: {e}")
                 continue
 
+        driver.quit()
         return deals
 
     except Exception as e:
-        print(f"❌ Amazon Scraping Failed: {e}")
+        print(f"Amazon Scraping Failed: {e}")
         return []
 
 def send_to_telegram(deals):
-    """Send deals to Telegram channel."""
+    """Send deals to Telegram"""
     bot = Bot(token=TELEGRAM_BOT_TOKEN)
     for deal in deals:
         message = (
