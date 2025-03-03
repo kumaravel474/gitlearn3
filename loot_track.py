@@ -10,12 +10,16 @@ import re
 # Configuration
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
-CHECK_INTERVAL = 900  # 15 minutes
+CHECK_INTERVAL = 1800  # 30 minutes
 PRODUCTS_FILE = "electronics_deals.json"
 MIN_DISCOUNT = 50
 MAX_DISCOUNT = 80
 
-AMAZON_DEALS_URL = "https://www.amazon.in/gp/deals?ref_=nav_cs_gb&category=electronics"
+# Updated Amazon URLs
+AMAZON_BASE = "https://www.amazon.in"
+AMAZON_DEALS_URL = f"{AMAZON_BASE}/gp/deals"
+ELECTRONICS_URL = f"{AMAZON_BASE}/electronics/ref=nav_cs_electronics"
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
     "Accept-Language": "en-IN, en;q=0.9"
@@ -34,29 +38,47 @@ def save_products(products):
     with open(PRODUCTS_FILE, "w") as f:
         json.dump(products, f, indent=2)
 
-async def get_deal_page():
+async def get_page(url):
     try:
-        response = requests.get(AMAZON_DEALS_URL, headers=HEADERS, timeout=15)
+        response = requests.get(url, headers=HEADERS, timeout=15)
         response.raise_for_status()
         return response.text
     except Exception as e:
-        print(f"Error fetching deals page: {str(e)}")
+        print(f"Error fetching page: {str(e)}")
         return None
 
 def parse_deals(html):
     soup = BeautifulSoup(html, 'html.parser')
     deals = []
     
-    for item in soup.select('div.dealTile'):
+    # Look for deal containers
+    for item in soup.select('[data-component-type="s-search-result"]'):
         try:
             # Extract discount percentage
-            discount_text = item.select_one('.a-text-price').get_text()
-            discount = int(re.search(r'\d+', discount_text).group())
+            discount_elm = item.select_one('.a-text-price')
+            if not discount_elm:
+                continue
+                
+            discount_text = discount_elm.get_text()
+            discount_match = re.search(r'\d+', discount_text)
+            if not discount_match:
+                continue
+                
+            discount = int(discount_match.group())
             
             if MIN_DISCOUNT <= discount <= MAX_DISCOUNT:
-                title = item.select_one('.a-size-base.a-link-normal').get_text(strip=True)
-                url = "https://amazon.in" + item.select_one('a.a-link-normal')['href']
-                price = float(item.select_one('span.a-price-whole').get_text().replace(',', ''))
+                title_elm = item.select_one('h2 a')
+                if not title_elm:
+                    continue
+                    
+                title = title_elm.get_text(strip=True)
+                url = AMAZON_BASE + title_elm['href']
+                
+                price_elm = item.select_one('.a-price .a-offscreen')
+                if not price_elm:
+                    continue
+                    
+                price = float(price_elm.get_text().replace('₹', '').replace(',', ''))
                 
                 # Get original price
                 original_price_elm = item.select_one('.a-text-price[data-a-strike]')
@@ -77,8 +99,18 @@ def parse_deals(html):
     return deals
 
 async def check_deals():
-    html = await get_deal_page()
-    if not html:
+    # Try multiple URLs
+    urls_to_try = [
+        ELECTRONICS_URL,
+        AMAZON_DEALS_URL
+    ]
+    
+    for url in urls_to_try:
+        html = await get_page(url)
+        if html:
+            break
+    else:
+        print("Failed to fetch deals from all URLs")
         return
     
     current_deals = parse_deals(html)
