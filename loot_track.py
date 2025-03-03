@@ -11,7 +11,7 @@ from datetime import datetime
 # Configuration
 TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
-CHECK_INTERVAL = 30  # Check every 10 minutes
+CHECK_INTERVAL = 600  # Check every 10 minutes
 PRODUCTS_FILE = "time_based_deals.json"
 MIN_DISCOUNT = 50
 MAX_DISCOUNT = 80
@@ -104,6 +104,24 @@ def parse_lightning_deals(html):
             
     return deals
 
+async def send_deal_alert(deal):
+    """Send a Telegram alert for a single deal."""
+    message = f"⏳ **Time-Based Deal Alert!** ⏳\n"
+    message += f"🕒 Time Remaining: {deal['time_remaining']}\n"
+    message += f"📱 {deal['title']}\n"
+    message += f"💰 Price: ₹{deal['current_price']:,.2f}\n"
+    if deal['original_price']:
+        message += f"📉 {deal['discount']}% OFF (Was ₹{deal['original_price']:,.2f})\n"
+    message += f"🔗 Link: {deal['url']}"
+    
+    try:
+        await bot.send_message(
+            chat_id=TELEGRAM_CHAT_ID,
+            text=message
+        )
+    except TelegramError as e:
+        print(f"Telegram error: {str(e)}")
+
 async def check_lightning_deals():
     html = await get_page(LIGHTNING_DEALS_URL)
     if not html:
@@ -117,39 +135,14 @@ async def check_lightning_deals():
         
         if product_id not in tracked_deals:
             # New deal found
-            message = f"⏳ **Time-Based Deal Alert!** ⏳\n"
-            message += f"🕒 Time Remaining: {deal['time_remaining']}\n"
-            message += f"📱 {deal['title']}\n"
-            message += f"💰 Price: ₹{deal['current_price']:,.2f}\n"
-            if deal['original_price']:
-                message += f"📉 {deal['discount']}% OFF (Was ₹{deal['original_price']:,.2f})\n"
-            message += f"🔗 Link: {deal['url']}"
-            
-            try:
-                await bot.send_message(
-                    chat_id=TELEGRAM_CHAT_ID,
-                    text=message
-                )
-                tracked_deals[product_id] = deal
-            except TelegramError as e:
-                print(f"Telegram error: {str(e)}")
+            await send_deal_alert(deal)
+            tracked_deals[product_id] = deal
         else:
             # Check price drop
             old_price = tracked_deals[product_id]['current_price']
             if deal['current_price'] < old_price:
-                message = f"🚨 Price Drop Alert! 🚨\n"
-                message += f"📱 {deal['title']}\n"
-                message += f"⬇️ From ₹{old_price:,.2f} to ₹{deal['current_price']:,.2f}\n"
-                message += f"🔗 Link: {deal['url']}"
-                
-                try:
-                    await bot.send_message(
-                        chat_id=TELEGRAM_CHAT_ID,
-                        text=message
-                    )
-                    tracked_deals[product_id] = deal
-                except TelegramError as e:
-                    print(f"Telegram error: {str(e)}")
+                await send_deal_alert(deal)
+                tracked_deals[product_id] = deal
     
     save_products(tracked_deals)
 
@@ -158,7 +151,7 @@ async def main():
         start_time = time.time()
         await check_lightning_deals()
         elapsed = time.time() - start_time
-        await asyncio.sleep(max(CHECK_INTERVAL - elapsed, 0))  # Fixed this line
+        await asyncio.sleep(max(CHECK_INTERVAL - elapsed, 0))
 
 if __name__ == "__main__":
     print("🚀 Starting Time-Based Deal Tracker...")
