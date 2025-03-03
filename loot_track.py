@@ -18,7 +18,7 @@ MAX_DISCOUNT = 80
 # Updated Amazon URLs
 AMAZON_BASE = "https://www.amazon.in"
 AMAZON_DEALS_URL = f"{AMAZON_BASE}/gp/deals"
-ELECTRONICS_URL = f"{AMAZON_BASE}/electronics/ref=nav_cs_electronics"
+ELECTRONICS_URL = f"{AMAZON_BASE}/s?k=electronics&i=electronics&bbn=976419031&ref=nb_sb_noss"
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Linux; Android 10; SM-A205U) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.120 Mobile Safari/537.36",
@@ -40,7 +40,7 @@ def save_products(products):
 
 async def get_page(url):
     try:
-        response = requests.get(url, headers=HEADERS, timeout=15)
+        response = requests.get(url, headers=HEADERS, timeout=10)  # Reduced timeout
         response.raise_for_status()
         return response.text
     except Exception as e:
