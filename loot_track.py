@@ -1,14 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 import time
-import re
+import random
 
 # Configuration
 AMAZON_BASE = "https://www.amazon.in"
 ELECTRONICS_URL = f"{AMAZON_BASE}/s?k=electronics&i=electronics&ref=nb_sb_noss_2"
-CHECK_INTERVAL = 60  # 10 minutes
+CHECK_INTERVAL = 600  # 10 minutes
 
-# Headers to mimic a real browser
+# Enhanced headers to mimic a real browser
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
     "Accept-Language": "en-US, en;q=0.9",
@@ -30,8 +30,8 @@ def parse_electronics_items(html):
     soup = BeautifulSoup(html, 'html.parser')
     items = []
     
-    # Look for product containers
-    for item in soup.select('div.s-main-slot div.s-asin[data-component-type="s-search-result"]'):
+    # Look for product containers using updated selectors
+    for item in soup.select('div.s-main-slot div[data-component-type="s-search-result"]'):
         try:
             # Extract product title
             title_elm = item.select_one('h2 a span')
@@ -95,9 +95,9 @@ def main():
             if items:
                 print_items(items)
             else:
-                print("No items found.")
+                print("No items found. Check if Amazon has blocked the request or the HTML structure has changed.")
         else:
-            print("Failed to fetch items.")
+            print("Failed to fetch items. Check your internet connection.")
         
         time.sleep(CHECK_INTERVAL)
 
