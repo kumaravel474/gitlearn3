@@ -3,8 +3,8 @@ from bs4 import BeautifulSoup
 import telegram
 
 # Set your Telegram bot details
-TELEGRAM_BOT_TOKEN = "your_bot_token_here"
-TELEGRAM_CHAT_ID = "your_chat_id_here"
+TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
+TELEGRAM_CHAT_ID = "-1002282196044"
 
 # Amazon Loot Deals URL (Change based on your location)
 AMAZON_URL = "https://www.amazon.in/deals"
