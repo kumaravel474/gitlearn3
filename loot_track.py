@@ -35,7 +35,7 @@ def scrape_amazon_deals():
 
                 if "%" in discount_text:
                     discount = int(discount_text.replace("%", "").strip())
-                    if discount >= 50:
+                    if discount >= 20:
                         price = deal.find_element(By.XPATH, ".//span[contains(@class, 'PriceString-module__price')]").text.strip()
                         image_url = deal.find_element(By.XPATH, ".//img[contains(@class, 'Image-module__image')]").get_attribute("src")
                         link = deal.find_element(By.XPATH, ".//a[contains(@class, 'DealLink-module__link')]").get_attribute("href")
