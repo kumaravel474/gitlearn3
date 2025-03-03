@@ -12,8 +12,8 @@ AMAZON_URL = "https://www.amazon.in/deals"
 # Function to scrape Amazon deals
 def get_amazon_loot_deals():
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    }
+    "User-Agent": "Mozilla/5.0 (Linux; Android 12; Mobile; rv:109.0) Gecko/117.0 Firefox/117.0"
+}
     response = requests.get(AMAZON_URL, headers=headers)
     soup = BeautifulSoup(response.text, "html.parser")
 
@@ -28,7 +28,7 @@ def get_amazon_loot_deals():
 
             # Extract discount percentage
             discount_percentage = int(discount.replace("% off", "").strip())
-            if discount_percentage >= 50:  # Only 50%+ off deals
+            if discount_percentage >= 30:  # Only 50%+ off deals
                 deals.append((title, price, discount, image, link))
         except:
             continue
