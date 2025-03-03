@@ -7,7 +7,7 @@ TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
 
 # Amazon Loot Deals URL (Change based on your location)
-AMAZON_URL = "https://www.amazon.in/deals"
+AMAZON_URL = "https://www.amazon.in/gp/goldbox"
 
 # Function to scrape Amazon deals
 def get_amazon_loot_deals():
