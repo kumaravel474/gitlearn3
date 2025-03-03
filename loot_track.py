@@ -11,7 +11,7 @@ TELEGRAM_BOT_TOKEN = "7875275535:AAFoNQXjkW1D6Wrl8liaYjlFCmCgbxij8gU"
 TELEGRAM_CHAT_ID = "-1002282196044"
 
 # ✅ Amazon Loot Deals URL (Change country if needed)
-AMAZON_URL = "https://www.amazon.in/deals?filter=percent-off-50-"
+AMAZON_URL = "https://www.amazon.in/deals?ref_=nav_cs_gb&discounts-widget=%2522%257B%255C%2522state%255C%2522%253A%257B%255C%2522refinementFilters%255C%2522%253A%257B%255C%2522percentOff%255C%2522%253A%255B%255C%25223%255C%2522%255D%257D%257D%252C%255C%2522version%255C%2522%253A1%257D%2522"
 
 # ✅ Setup Selenium WebDriver
 chrome_options = Options()
